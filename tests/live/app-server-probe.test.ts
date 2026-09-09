@@ -76,7 +76,7 @@ describe("standalone App Server capability report", () => {
   });
 
   it("preflights only version and App Server help, then redacts the executable path", () => {
-    const executable = "C:\\Private\\Codex\\codex.exe";
+    const executable = process.platform === "win32" ? "C:\\Private\\Codex\\codex.exe" : "/private/codex";
     const run = vi.fn((receivedExecutable: string, args: readonly string[]) => {
       expect(receivedExecutable).toBe(executable);
       if (args[0] === "--version") {

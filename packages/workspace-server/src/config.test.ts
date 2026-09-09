@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, rm, symlink } from "node:fs/promises";
+import { mkdir, mkdtemp, realpath, rm, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 
@@ -18,7 +18,7 @@ import {
 const temporaryDirectories: string[] = [];
 
 async function temporaryDirectory(name: string): Promise<string> {
-  const directory = await mkdtemp(join(tmpdir(), `aimd-config-${name}-`));
+  const directory = await realpath(await mkdtemp(join(tmpdir(), `aimd-config-${name}-`)));
   temporaryDirectories.push(directory);
   return directory;
 }

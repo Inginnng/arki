@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+const fixtureRoot = process.platform === "win32" ? "C:\\fixture-project" : "/fixture-project";
 
 import {
   createWorkspaceSnapshot,
@@ -14,7 +15,7 @@ function fixtureEvidence(runId: string, generation: string) {
   const source = "MCP 是一种让 AI 应用连接外部工具与数据的开放协议。";
   const fileHash = sha256Text(source);
   const snapshot = createWorkspaceSnapshot({
-    projectRoot: "C:\\fixture-project",
+    projectRoot: fixtureRoot,
     rootId: "root-fixture",
     branch: null,
     head: null,
@@ -44,7 +45,7 @@ describe("Codex CLI reader bridge", () => {
   it("reports a rejected Codex tool event as an isolation breach", async () => {
     const onRunFinish = vi.fn();
     const bridge = createCodexCliBridge({
-      canonicalRoot: "C:\\fixture-project",
+      canonicalRoot: fixtureRoot,
       rootId: "root-fixture",
       workspaceLabel: "fixture-project",
       runner: {
@@ -56,8 +57,8 @@ describe("Codex CLI reader bridge", () => {
       onRunFinish,
     });
     const session = await bridge.createSession(
-      await bridge.verifyBinding({ status: "unavailable" }, "C:\\fixture-project"),
-      "C:\\fixture-project",
+      await bridge.verifyBinding({ status: "unavailable" }, fixtureRoot),
+      fixtureRoot,
       "README.md",
     );
     const { snapshot, packet } = fixtureEvidence("run-isolation", "generation-isolation");
@@ -128,13 +129,13 @@ describe("Codex CLI reader bridge", () => {
       }),
     };
     const bridge = createCodexCliBridge({
-      canonicalRoot: "C:\\fixture-project",
+      canonicalRoot: fixtureRoot,
       rootId: "root-fixture",
       workspaceLabel: "fixture-project",
       runner,
     });
-    const binding = await bridge.verifyBinding({ status: "unavailable" }, "C:\\fixture-project");
-    const session = await bridge.createSession(binding, "C:\\fixture-project", "README.md");
+    const binding = await bridge.verifyBinding({ status: "unavailable" }, fixtureRoot);
+    const session = await bridge.createSession(binding, fixtureRoot, "README.md");
 
     for (const [index, question] of questions.entries()) {
       const runId = `run-${index + 1}`;

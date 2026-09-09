@@ -1,4 +1,5 @@
 import { readFile, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 
 import { describe, expect, it, vi } from "vitest";
 
@@ -73,7 +74,7 @@ describe("CodexCliRunner", () => {
       stdin: string;
       outputFile: string;
     }) => {
-      const policy = await readFile(new URL(`file:///${request.cwd.replaceAll("\\", "/")}/AGENTS.md`), "utf8");
+      const policy = await readFile(join(request.cwd,"AGENTS.md"), "utf8");
       expect(policy).toContain(turn.developerInstructions);
       expect(request.stdin).toBe(`${turn.developerInstructions}\n\n--- UNTRUSTED INPUT DATA ---\n${turn.text}`);
       expect(request.args.join(" ")).not.toContain(question);
@@ -81,7 +82,7 @@ describe("CodexCliRunner", () => {
       return { exitCode: 0, stdout: "", stderr: "" };
     });
     const runner = new CodexCliRunner({
-      executablePath: "C:\\tools\\codex.exe",
+      executablePath: process.execPath,
       execute,
     });
 

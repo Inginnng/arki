@@ -216,7 +216,7 @@ describe("workspace path guard", () => {
     expect(result.matches).toEqual([]);
     // The rg backend may eliminate non-matching authorized files before the
     // guarded excerpt pass. Credential paths must never enter either list.
-    expect(result.inspectedPaths).toEqual([]);
+    expect(result.inspectedPaths.every(path => path === "safe.md")).toBe(true);
     expect(result.truncated).toBe(false);
   });
 

@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rename, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, realpath, rename, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -25,7 +25,7 @@ const MODEL_SANDBOX_PATH = process.platform === "win32"
   : "/tmp/aimd-model-sandbox-live-test";
 
 beforeAll(async () => {
-  temporaryRoot = await mkdtemp(join(tmpdir(), "aimd-live-probe-"));
+  temporaryRoot = await realpath(await mkdtemp(join(tmpdir(), "aimd-live-probe-")));
   projectRoot = join(temporaryRoot, "fixture");
   otherRoot = join(temporaryRoot, "other");
   await Promise.all([

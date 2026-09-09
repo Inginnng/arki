@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -15,7 +15,7 @@ import {
 const temporaryDirectories: string[] = [];
 
 async function temporaryDirectory(prefix: string): Promise<string> {
-  const directory = await mkdtemp(join(tmpdir(), prefix));
+  const directory = await realpath(await mkdtemp(join(tmpdir(), prefix)));
   temporaryDirectories.push(directory);
   return directory;
 }

@@ -1,6 +1,6 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { createHash } from "node:crypto";
-import { access, mkdtemp, mkdir, readFile, readdir, rename, rm, symlink, unlink, writeFile } from "node:fs/promises";
+import { access, mkdtemp, mkdir, readFile, readdir, realpath, rename, rm, symlink, unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -123,7 +123,7 @@ beforeAll(async () => {
     join(workspaceRoot, ".agents", "plugins", "marketplace.json"),
     join(workspaceRoot, ".agents-hold", "plugins", "marketplace.json"),
   ]);
-  temporaryRoot = await mkdtemp(join(tmpdir(), "aimd-package-test-"));
+  temporaryRoot = await realpath(await mkdtemp(join(tmpdir(), "aimd-package-test-")));
   pluginRoot = join(temporaryRoot, "original", "aimd-reader");
   await mkdir(pluginRoot, { recursive: true });
   await mkdir(join(pluginRoot, ".codex-plugin"), { recursive: true });

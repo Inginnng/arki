@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, symlink, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -378,6 +378,8 @@ describe("JsonAnnotationRepository", () => {
     const repository = new JsonAnnotationRepository(path, {
       afterReadOpen: async () => {
         await writeFile(path, reordered, "utf8");
+        // Make the metadata change observable even on coarse filesystem clocks.
+        await utimes(path,new Date("2000-01-01T00:00:00Z"),new Date("2000-01-01T00:00:00Z"));
       },
     });
 
