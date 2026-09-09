@@ -1,0 +1,50 @@
+import { createServer } from "node:http";
+import { afterEach, expect, it, vi } from "vitest";
+import { ArchitectureError } from "./architecture-errors.js";
+import { createArchitectureApi } from "./architecture-api.js";
+const servers: ReturnType<typeof createServer>[] = [];
+afterEach(async () => { await Promise.all(servers.splice(0).map(server => new Promise<void>(resolve => server.close(() => resolve())))); });
+it("restricts origins, body shape, size and error details at the architecture gateway", async () => {
+  const open = vi.fn(async () => { throw new Error("private absolute path and model diagnostics"); });
+  const logged = vi.fn();
+  const api = createArchitectureApi({ open, ask: vi.fn(), export: vi.fn() }, { onError: logged });
+  const server = createServer((req, res) => { void api.handle(req, res).then(handled => { if (!handled) res.writeHead(404).end(); }); });
+  servers.push(server); await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
+  const address = server.address(); if (!address || typeof address === "string") throw new Error("listen");
+  const origin = `http://127.0.0.1:${address.port}`;
+  const call = (body: unknown, source = origin) => fetch(origin + "/api/architecture", { method: "POST", headers: { origin: source, "content-type": "application/json" }, body: JSON.stringify(body) });
+  expect((await call({ operation: "open" }, "https://evil.example")).status).toBe(403);
+  expect(await (await call({ operation: "open", threadId: "forged" })).json()).toMatchObject({ ok: false, error: { code: "ARCHITECTURE_REQUEST_INVALID" } });
+  expect(await (await call({ operation: "open", junk: "x".repeat(513000) })).json()).toMatchObject({ ok: false });
+  expect(open).not.toHaveBeenCalled();
+  const unknown = await (await call({ operation: "open" })).json();
+  expect(unknown).toMatchObject({ ok: false, error: { code: "ARCHITECTURE_INTERNAL", stage: "internal", requestId: expect.any(String) } });
+  expect(JSON.stringify(unknown)).not.toContain("private");
+  open.mockRejectedValueOnce(new ArchitectureError("ARCHITECTURE_UNKNOWN_EVIDENCE", [{ code: "UNKNOWN_CITATION", objectId: "gateway", field: "nodeUpdates.evidenceIds", message: "证据编号未提供。", actual: "evidence-99", expected: "evidence-1" }]));
+  const rejected = await (await call({ operation: "open" })).json();
+  expect(rejected.error).toMatchObject({ code: "ARCHITECTURE_UNKNOWN_EVIDENCE", issues: [{ objectId: "gateway", actual: "evidence-99" }] });
+  expect(logged).toHaveBeenLastCalledWith(rejected.error);
+  expect(rejected.error.requestId).not.toBe(unknown.error.requestId);
+});
+it("returns a deadline error even when a renderer ignores cancellation", async () => {
+  let signal: AbortSignal | undefined; let fail!: (error: Error) => void;
+  const open = vi.fn((_graph?: unknown, value?: AbortSignal) => { signal = value; return new Promise<never>((_resolve, reject) => { fail = reject; }); });
+  const api = createArchitectureApi({ open, ask: vi.fn(), export: vi.fn() }, { requestTimeoutMs: 20 });
+  const server = createServer((req, res) => { void api.handle(req, res); }); servers.push(server);
+  await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve)); const address = server.address(); if (!address || typeof address === "string") throw Error("listen");
+  const response = await fetch("http://127.0.0.1:" + address.port + "/api/architecture", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ operation: "open" }) });
+  expect(await response.json()).toMatchObject({ ok: false, error: { code: "ARCHITECTURE_TIMEOUT" } });
+  expect(signal?.aborted).toBe(true); fail(Error("late failure must be observed"));
+});
+
+it("rejects an old browser's project binding before reading or calling the model", async () => {
+  const open = vi.fn(async () => ({ graph: "fixture" }));
+  const key = "b".repeat(64);
+  const api = createArchitectureApi({ open, ask: vi.fn(), export: vi.fn() } as unknown as Parameters<typeof createArchitectureApi>[0], { projectKey: key });
+  const server = createServer((req, res) => { void api.handle(req, res); }); servers.push(server);
+  await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve)); const address = server.address(); if (!address || typeof address === "string") throw Error("listen");
+  const call = (project: string) => fetch("http://127.0.0.1:" + address.port + "/api/architecture", { method: "POST", headers: { "content-type": "application/json", "x-arki-project": project }, body: JSON.stringify({ operation: "open" }) });
+  expect(await (await call("a".repeat(64))).json()).toMatchObject({ ok: false, error: { code: "ARCHITECTURE_PROJECT_CHANGED" } });
+  expect(open).not.toHaveBeenCalled(); expect(await (await call(key)).json()).toMatchObject({ ok: true });
+  expect(open).toHaveBeenCalledOnce();
+});

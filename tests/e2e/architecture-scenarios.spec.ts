@@ -1,0 +1,26 @@
+import {expect,test} from "@playwright/test";
+import {readFile} from "node:fs/promises";
+import {scenarioGraph} from "../fixtures/architecture-scenarios.mjs";
+test("典型流程复用架构位置，按真实分支导航并保留并行、重试、重复组件和导出",async({page},testInfo)=>{
+ const errors:string[]=[];page.on("pageerror",error=>errors.push(error.message));let asks=0;
+ await page.route("**/api/health",route=>route.fulfill({json:{ok:true}}));
+ await page.route("**/api/reader",route=>{const call=route.request().postDataJSON();return route.fulfill({json:{structuredContent:call.name==="aimd_list_roots"?{roots:[{rootId:"root",workspaceLabel:"公开流程测试样例",storageKey:"8".repeat(64)}]}:{documents:[]}}});});
+ await page.route("**/api/architecture",route=>{const call=route.request().postDataJSON();if(call.operation==="ask")asks++;return route.fulfill({json:{ok:true,data:{graph:scenarioGraph,stale:false,...(call.operation==="ask"?{answer:"已读取三个测试场景。",limitations:[],evidence:[],changedIds:[]}: {})}}});});
+ await page.goto("/web.html#architecture");await expect(page.locator("[data-node-id]")).toHaveCount(8);await expect(page.getByRole("button",{name:"重新生成",exact:true})).toBeEnabled();
+ const positions=()=>page.locator(".react-flow__node").evaluateAll(elements=>Object.fromEntries(elements.map(element=>[element.getAttribute("data-id"),(element as HTMLElement).style.transform])));
+ const structure=await positions();await page.screenshot({path:testInfo.outputPath("scenario-structure.png")});
+ await page.getByRole("button",{name:"流程图",exact:true}).click();await expect(page.locator(".arki-flow-chapters button")).toHaveCount(3);await expect(page.getByRole("heading",{name:"1. 提交输入",exact:true})).toBeVisible();
+ expect(await positions()).toEqual(structure);await expect(page.locator('[data-node-id="client"] .arki-step-badge')).toHaveText("步骤 1 · 5 · 6");await expect(page.locator('.react-flow__node[data-id="archive"]')).toHaveCSS("opacity","0.25");
+ await page.locator(".arki-flow-branches button").filter({hasText:"检查文本类型"}).click();await expect(page.getByRole("heading",{name:"2. 检查文本类型",exact:true})).toBeVisible();await expect(page.locator(".arki-flow-branches button")).toHaveCount(2);
+ await page.locator(".arki-flow-branches button").filter({hasText:"text 不是字符串"}).click();await expect(page.getByRole("heading",{name:"6. 提示输入错误",exact:true})).toBeVisible();await expect(page.locator(".arki-flow-transfer")).toContainText("HTTP 400");
+ await page.getByRole("button",{name:"上一步",exact:true}).click();await expect(page.getByRole("heading",{name:"2. 检查文本类型",exact:true})).toBeVisible();await page.locator(".arki-flow-branches button").filter({hasText:"text 是字符串"}).click();await expect(page.getByRole("heading",{name:"3. 计算词数",exact:true})).toBeVisible();
+ const route=page.locator(".react-flow__edge-path").first();const point=await route.evaluate((path:SVGPathElement)=>{const p=path.getPointAtLength(path.getTotalLength()*.2);const screen=new DOMPoint(p.x,p.y).matrixTransform(path.getScreenCTM()!);return{x:screen.x,y:screen.y,length:path.getTotalLength()};});expect(point.length).toBeGreaterThan(0);await page.mouse.click(point.x,point.y);await expect(page.locator(".arki-flow-transfer")).toContainText("JSON { text }");await page.screenshot({path:testInfo.outputPath("scenario-count.png")});
+ await page.getByRole("button",{name:"缓存命中与回退",exact:true}).click();await expect(page.getByRole("heading",{name:"1. 查询缓存",exact:true})).toBeVisible();expect(await positions()).toEqual(structure);
+ await page.getByRole("button",{name:"并行处理与重试",exact:true}).click();await expect(page.locator(".arki-flow-reader")).toContainText("这里包含并行分支");await expect(page.locator(".arki-flow-branches button")).toHaveCount(2);
+ await page.locator(".arki-flow-branches button").filter({hasText:"校验输入"}).click();await page.locator(".arki-flow-branches button").filter({hasText:"校验失败且用户调整输入后重试"}).click();await expect(page.getByRole("heading",{name:"1. 启动并行任务",exact:true})).toBeVisible();await page.getByRole("button",{name:"上一步",exact:true}).click();await expect(page.getByRole("heading",{name:"2. 校验输入",exact:true})).toBeVisible();
+ await page.getByRole("button",{name:"深色",exact:true}).click();await page.screenshot({path:testInfo.outputPath("scenario-parallel-dark.png")});
+ const download=page.waitForEvent("download");await page.getByRole("button",{name:"导出 HTML",exact:true}).click();const html=await readFile((await (await download).path())!,"utf8");for(const flow of scenarioGraph.flows!){expect(html).toContain(flow.label);for(const edge of flow.transitions)if(edge.condition)expect(html).toContain(edge.condition);}expect(html).not.toContain('<script');
+ await page.getByRole("button",{name:"架构文档",exact:true}).click();await expect(page.locator(".arki-document-dialog")).toBeVisible();await expect(page.locator(".arki-document-dialog")).toContainText("并行处理与重试");await page.keyboard.press("Escape");
+ await expect(page.locator(".architecture-canvas-footer")).toContainText("保存在此浏览器");await page.reload();await page.getByRole("button",{name:"流程图",exact:true}).click();await expect(page.locator(".arki-flow-chapters button")).toHaveCount(3);expect(asks).toBe(1);
+ await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);expect(errors).toEqual([]);
+});

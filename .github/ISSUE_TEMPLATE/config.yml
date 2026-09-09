@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security vulnerability / 安全漏洞
+    url: https://github.com/Inginnng/arki/security/advisories/new
+    about: Use private reporting; do not disclose vulnerabilities in public issues.

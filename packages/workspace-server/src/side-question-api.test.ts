@@ -1,0 +1,40 @@
+import { createServer } from "node:http";
+import { afterEach, expect, it, vi } from "vitest";
+import { createSideQuestionApi } from "./side-question-api.js";
+const servers: ReturnType<typeof createServer>[] = [];
+afterEach(async () => { await Promise.all(servers.splice(0).map(server => new Promise<void>(resolve => server.close(() => resolve())))); });
+it("serves task handles and rejects cross-origin requests and raw task IDs", async () => {
+  const listTasks = vi.fn(async () => [{ handle: "choice-1", title: "任务", updatedAt: 100 }]);
+  const selectTask = vi.fn(async () => ({ handle: "selection-1", title: "任务", cutoffLabel: "固定截止", historyTruncated: false }));
+  const api = createSideQuestionApi({ listTasks, selectTask, ask: vi.fn() });
+  const server = createServer((req, res) => { void api.handle(req, res).then(handled => { if (!handled) res.writeHead(404).end(); }); });
+  servers.push(server); await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
+  const address = server.address(); if (!address || typeof address === "string") throw new Error("listen");
+  const origin = `http://127.0.0.1:${address.port}`;
+  const call = (body: unknown, source = origin) => fetch(origin + "/api/side", { method: "POST", headers: { origin: source, "content-type": "application/json" }, body: JSON.stringify(body) });
+  expect(await (await call({ operation: "list", arguments: {} })).json()).toMatchObject({ ok: true, data: { tasks: [{ handle: "choice-1" }] } });
+  expect((await call({ operation: "list", arguments: {} }, "https://evil.example")).status).toBe(403);
+  const forged = await call({ operation: "select", arguments: { handle: "choice-1", threadId: "raw-task-id" } });
+  expect(await forged.json()).toMatchObject({ ok: false });
+  expect(selectTask).not.toHaveBeenCalled();
+});
+it("returns and logs the same bounded diagnostic for a connection timeout", async () => {
+  const onError = vi.fn();
+  const api = createSideQuestionApi({ listTasks: vi.fn(), selectTask: vi.fn(), ask: vi.fn(async () => { throw Object.assign(new Error("SIDE_TIMEOUT"), { diagnostic: { stage: "model", elapsedMs: 120050, retryCount: 4, lastErrorCode: "CONNECTION_FAILED" }, secret: "PRIVATE_MODEL_TEXT" }); }) }, { onError });
+  const server = createServer((req, res) => { void api.handle(req, res); }); servers.push(server);
+  await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve)); const address = server.address(); if (!address || typeof address === "string") throw Error("listen");
+  const response = await fetch("http://127.0.0.1:" + address.port + "/api/side", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ operation: "ask", arguments: { selectionHandle: "selected-1", documentPath: "README.md", documentHash: "a".repeat(64), startOffset: 0, endOffset: 1, question: "说明" } }) });
+  const body = await response.json(); expect(body.ok).toBe(false);
+  expect(body.error.message).toContain("连接反复失败"); expect(body.error.requestId).toMatch(/^[a-f0-9-]{36}$/u);
+  expect(body.error.diagnostic).toEqual({ stage: "model", elapsedMs: 120050, retryCount: 4, lastErrorCode: "CONNECTION_FAILED" });
+  expect(onError).toHaveBeenCalledWith(body.error); expect(JSON.stringify(body)).not.toContain("PRIVATE_MODEL_TEXT");
+});
+it("bounds a stalled context request and aborts underlying work", async () => {
+  let signal: AbortSignal | undefined; let finish!: (value: never[]) => void;
+  const api = createSideQuestionApi({ listTasks: vi.fn((value?: AbortSignal) => { signal = value; return new Promise<never[]>(resolve => { finish = resolve; }); }), selectTask: vi.fn(), ask: vi.fn() }, { requestTimeoutMs: 20 });
+  const server = createServer((req, res) => { void api.handle(req, res); }); servers.push(server);
+  await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve)); const address = server.address(); if (!address || typeof address === "string") throw Error("listen");
+  const response = await fetch("http://127.0.0.1:" + address.port + "/api/side", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ operation: "list", arguments: {} }) });
+  expect(await response.json()).toMatchObject({ ok: false, error: { code: "SIDE_TIMEOUT", diagnostic: { stage: "task_context" } } });
+  expect(signal?.aborted).toBe(true); finish([]);
+});

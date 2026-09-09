@@ -1,0 +1,35 @@
+import { expect, test } from "@playwright/test";
+import { readFile } from "node:fs/promises";
+import type { ArchitectureGraph } from "@aimd/contracts";
+const source={path:"server.ts",startLine:1,endLine:2,fileHash:"a".repeat(64)};
+const graph:ArchitectureGraph={id:"components-example",version:2,title:"文本计数系统",notes:[],nodes:[{id:"client",label:"提交文本",codeName:"submitText",kind:"frontend",summary:"提交输入并展示计数结果",detail:"POST /api/count 发送 { text }，接收 { words }。",sources:[source]},{id:"server",label:"请求入口",codeName:"handleCount",kind:"backend",summary:"校验文本并分派统计",detail:"校验 text，再调用 countWords(text)，序列化为 { words } 返回。",sources:[source]},{id:"engine",label:"统计词数",codeName:"countWords",kind:"backend",summary:"按空白分词并统计数量",detail:"输入字符串返回非空片段的数量。",sources:[source]}],edges:[{id:"submit",from:"client",to:"server",label:"提交待统计文本",kind:"flow",transfer:{payload:"JSON { text: string }",mechanism:"POST /api/count",processing:"解析请求体并校验 text 字段",result:"HTTP 200 · JSON { words: number }"},detail:"客户端提交字符串，服务端返回计数。",sources:[source]},{id:"calculate",from:"server",to:"engine",label:"传入文本获取词数",kind:"flow",transfer:{payload:"text 字符串",mechanism:"countWords(text)",processing:"trim → 按空白 split → 去除空项",result:"number 词数"},detail:"请求入口调用纯计算函数。",sources:[source]}],groups:[{id:"browser",parentId:null,label:"浏览器界面",summary:"用户输入与结果展示",detail:"客户端通过 HTTP 调用服务端。",nodeIds:["client"],sources:[source]},{id:"backend",parentId:null,label:"本地服务",summary:"接收请求并组织统计",detail:"HTTP 处理器与内部统计器构成服务端。",nodeIds:["server"],sources:[source]},{id:"computation",parentId:"backend",label:"统计内核",summary:"封装独立的计数规则",detail:"服务内部的纯计算组件。",nodeIds:["engine"],sources:[source]}],narrative:{title:"一次文本统计",summary:"提交文本，经请求入口校验后交给统计内核，词数沿调用链返回。",edgeIds:["submit","calculate"],sources:[source]}};
+test("组件嵌套与数据流程分开展示，框、线、导出及存档保留语义",async({page},testInfo)=>{
+ const errors:string[]=[];page.on("pageerror",error=>errors.push(error.message));
+ const view={graph,stale:false};const calls:any[]=[];
+ await page.route("**/api/health",route=>route.fulfill({json:{ok:true}}));
+ await page.route("**/api/reader",route=>{const call=route.request().postDataJSON();return route.fulfill({json:{structuredContent:call.name==="aimd_list_roots"?{roots:[{rootId:"root",workspaceLabel:"公开文本计数示例",storageKey:"b".repeat(64)}]}:{documents:[]}}})});
+ await page.route("**/api/architecture",route=>{const call=route.request().postDataJSON();calls.push(call);return route.fulfill({json:{ok:true,data:call.operation==="ask"?{...view,answer:"统计内核只接收 text 并返回 number。",limitations:[],evidence:[],changedIds:[]}:view}})});
+ await page.goto("/web.html#architecture");
+ await expect(page.locator("[data-node-id]")).toHaveCount(6);
+ await expect(page.getByRole("button",{name:"重新生成",exact:true})).toBeEnabled();
+ await expect.poll(async()=>page.locator("[data-node-id=engine]").evaluate(element=>element.getBoundingClientRect().x-document.querySelector("[data-node-id=computation]")!.getBoundingClientRect().x)).toBeGreaterThan(1);
+ const boxes=await page.locator("[data-node-id]").evaluateAll(elements=>Object.fromEntries(elements.map(e=>{const r=e.getBoundingClientRect();return[e.getAttribute("data-node-id"),{x:r.x,y:r.y,right:r.right,bottom:r.bottom}]})));
+ for(const [child,parent] of [["engine","computation"],["computation","backend"],["server","backend"],["client","browser"]]){expect(boxes[child!]!.x).toBeGreaterThan(boxes[parent!]!.x);expect(boxes[child!]!.y).toBeGreaterThan(boxes[parent!]!.y);expect(boxes[child!]!.right).toBeLessThan(boxes[parent!]!.right);expect(boxes[child!]!.bottom).toBeLessThan(boxes[parent!]!.bottom);}
+ await page.locator('[data-node-id="computation"]').press("Enter");
+ await expect(page.getByRole("heading",{name:"统计内核",exact:true})).toBeVisible();
+ await page.getByLabel("想弄清这个部分的什么？").fill("统计内核包含哪些实现？");await page.getByRole("button",{name:"解释并完善",exact:true}).click();
+ await expect(page.getByText("统计内核只接收 text 并返回 number。",{exact:true}).first()).toBeVisible();expect(calls.at(-1).target).toEqual({kind:"group",id:"computation"});
+ await expect(page.locator('[data-node-id="engine"]')).toBeVisible();
+ await page.screenshot({path:testInfo.outputPath("components-structure.png")});
+ await page.getByRole("button",{name:"流程图",exact:true}).click();
+ await expect(page.locator("[data-edge-id]")).toHaveCount(2);await expect(page.locator(".arki-component-group")).toHaveCount(3);
+ const path=page.locator('.react-flow__edge[data-id="scenario-client-server"] .react-flow__edge-path');
+ const point=await path.evaluate((element:SVGPathElement)=>{const point=element.getPointAtLength(element.getTotalLength()*0.2);const mapped=new DOMPoint(point.x,point.y).matrixTransform(element.getScreenCTM()!);return{x:mapped.x,y:mapped.y}});await page.mouse.click(point.x,point.y);
+ await expect(page.getByRole("heading",{name:"2. 请求入口",exact:true})).toBeVisible();await expect(page.locator(".arki-flow-transfer")).toContainText("JSON { text: string }");await expect(page.locator(".arki-flow-transfer")).toContainText("POST /api/count");
+ await page.locator('[data-edge-id="calculate"]').press("Enter");await expect(page.locator(".arki-flow-transfer")).toContainText("countWords(text)");
+ await page.screenshot({path:testInfo.outputPath("components-flow.png")});
+ await page.getByRole("button",{name:"深色",exact:true}).click();await page.screenshot({path:testInfo.outputPath("components-dark.png")});
+ const download=page.waitForEvent("download");await page.getByRole("button",{name:"导出 HTML",exact:true}).click();const html=await readFile((await (await download).path())!,"utf8");expect(html).toContain('id="structure"');expect(html).toContain('id="flow"');expect(html).toContain("统计内核");expect(html).toContain("JSON { text: string }");expect(html).not.toContain("<script");
+ await expect(page.locator(".architecture-canvas-footer").getByText(/保存在此浏览器/)).toBeVisible();await page.reload();await expect(page.locator(".arki-component-group")).toHaveCount(3);expect(calls.filter(call=>call.intent==="analyze")).toHaveLength(1);
+ await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);expect(errors).toEqual([]);
+});

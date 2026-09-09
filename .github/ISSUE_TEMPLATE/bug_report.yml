@@ -1,0 +1,37 @@
+name: Bug / 问题反馈
+description: Report a reproducible problem / 描述可复现的问题
+title: '[Bug] '
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Arki version / 版本
+      description: Shown in the workbench top bar / 工作台右上角显示
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment / 环境
+      description: OS, browser, Node.js, Codex and installation method. No credentials.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction / 复现步骤
+      description: Include a minimal public example if possible.
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: Expected and actual behavior / 预期与实际结果
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Sanitized diagnostics / 脱敏诊断
+      description: Remove private code, paths, task history and credentials before sharing.

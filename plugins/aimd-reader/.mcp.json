@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "aimd-reader": {
+      "command": "node",
+      "cwd": ".",
+      "args": [
+        "dist/server.mjs"
+      ]
+    }
+  }
+}

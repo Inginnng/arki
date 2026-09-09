@@ -1,0 +1,41 @@
+{
+  "name": "aimd-reader-workspace",
+  "version": "0.3.0",
+  "description": "Arki · 一览 — a local architecture workspace with code-grounded questions and scenario walkthroughs.",
+  "license": "MIT",
+  "repository": { "type": "git", "url": "https://github.com/Inginnng/arki.git" },
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=20.19"
+  },
+  "scripts": {
+    "build": "pnpm -r build && node scripts/package-plugin.mjs && node scripts/build-web.mjs",
+    "start": "node scripts/arki.mjs",
+    "build:web": "node scripts/build-web.mjs",
+    "dev:web": "tsx scripts/start-web.mts --root . --port 5173",
+    "typecheck": "pnpm -r --workspace-concurrency=1 typecheck",
+    "test": "vitest run",
+    "test:accuracy": "vitest run tests/accuracy/evaluate.test.ts",
+    "test:accuracy:live": "tsx tests/accuracy/live-evaluate.ts",
+    "test:e2e": "playwright test",
+    "test:watch": "vitest",
+    "check:scaffold": "pnpm typecheck && pnpm test",
+    "check": "pnpm typecheck && pnpm test && pnpm build",
+    "check:release": "node scripts/check-release.mjs",
+    "release:pack": "node scripts/release-pack.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "@types/node": "^24.3.0",
+    "@vitest/coverage-v8": "^3.2.4",
+    "esbuild": "^0.25.9",
+    "fflate": "^0.8.3",
+    "jsdom": "^26.1.0",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.4",
+    "vitest": "^3.2.4"
+  }
+}

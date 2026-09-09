@@ -1,0 +1,21 @@
+import type { ArchitectureView } from "@aimd/contracts";
+// Only renderer output enters this isolated frame. The model supplies typed graph data.
+export function architectureFrame(view: ArchitectureView, channel: string) {
+  if (!view.rendering) throw new Error("Legacy frame requires an Archify artifact");
+  const labels = Object.fromEntries(view.graph.edges.map(edge => [edge.id, `${view.graph.nodes.find(node => node.id === edge.from)?.label} → ${view.graph.nodes.find(node => node.id === edge.to)?.label}：${edge.label}`]));
+  return `<!doctype html><html data-theme="light" data-preset="classic" lang="zh-CN"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; form-action 'none'; base-uri 'none'"><style>${view.rendering.css}</style><style>
+html,body{margin:0!important;padding:0!important;width:100%;height:100%;overflow:hidden;background:var(--bg,#f7f9f7)}body{display:block!important}body>svg{display:block;width:100%;height:100%;max-width:none;touch-action:none} [data-node-id],g[data-edge-id]{cursor:pointer} [data-node-id]:hover{filter:brightness(.96)}[data-node-id][aria-pressed=true] rect{stroke:#258773!important;stroke-width:3!important}.edge-hit{stroke:transparent!important;stroke-width:18!important;fill:none!important;pointer-events:stroke;cursor:pointer;marker-end:none!important}path[data-edge-id].chosen:not(.edge-hit){stroke:#258773!important;stroke-width:4!important}[data-node-id]:focus-visible{outline:2px solid #258773}.edge-hit:focus-visible{stroke:#25877355!important;outline:none}
+</style></head><body>${view.rendering.svg}<script>
+const channel=${JSON.stringify(channel)},labels=${JSON.stringify(labels).replaceAll("<", "\\u003c")};
+const svg=document.querySelector('body>svg'), original=svg.getAttribute('viewBox').split(/[ ,]+/).map(Number);let box=[...original],drag=null;
+function draw(){svg.setAttribute('viewBox',box.join(' '))}
+function select(kind,id){document.querySelectorAll('[data-node-id]').forEach(el=>el.setAttribute('aria-pressed',String(kind==='node'&&el.dataset.nodeId===id)));document.querySelectorAll('[data-edge-id]').forEach(el=>el.classList.toggle('chosen',kind==='edge'&&el.dataset.edgeId===id))}
+function choose(el,kind,id){el.addEventListener('click',()=>{select(kind,id);parent.postMessage({channel,type:'select',target:{kind,id}},'*')});el.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();el.dispatchEvent(new MouseEvent('click',{bubbles:true}))}})}
+document.querySelectorAll('[data-node-id]').forEach(el=>choose(el,'node',el.dataset.nodeId));
+document.querySelectorAll('path[data-edge-id]').forEach(el=>{const hit=el.cloneNode();hit.removeAttribute('id');hit.removeAttribute('marker-end');hit.setAttribute('class','edge-hit');hit.setAttribute('tabindex','0');hit.setAttribute('role','button');hit.setAttribute('aria-label',labels[el.dataset.edgeId]||'选择连线');el.after(hit);choose(hit,'edge',el.dataset.edgeId)});
+document.querySelectorAll('g[data-edge-id]').forEach(el=>{el.setAttribute('tabindex','0');el.setAttribute('role','button');el.setAttribute('aria-label',labels[el.dataset.edgeId]||'选择连线');choose(el,'edge',el.dataset.edgeId)});
+window.addEventListener('message',event=>{const data=event.data;if(event.source!==parent||!data||data.channel!==channel)return;if(data.type==='select')select(data.target?.kind,data.target?.id);if(data.type==='theme')document.documentElement.dataset.theme=data.value==='dark'?'dark':'light';if(data.type==='fit'){box=[...original];draw()}if(data.type==='zoom'){const factor=data.value>0?.8:1.25;box=[box[0]+box[2]*(1-factor)/2,box[1]+box[3]*(1-factor)/2,box[2]*factor,box[3]*factor];draw()}});
+svg.addEventListener('pointerdown',event=>{if(event.target.closest('[data-node-id],.edge-hit'))return;drag={x:event.clientX,y:event.clientY,box:[...box]};svg.setPointerCapture(event.pointerId)});svg.addEventListener('pointermove',event=>{if(!drag)return;const scale=Math.max(box[2]/svg.clientWidth,box[3]/svg.clientHeight);box=[drag.box[0]-(event.clientX-drag.x)*scale,drag.box[1]-(event.clientY-drag.y)*scale,box[2],box[3]];draw()});svg.addEventListener('pointerup',()=>drag=null);
+parent.postMessage({channel,type:'ready'},'*');
+</script></body></html>`;
+}

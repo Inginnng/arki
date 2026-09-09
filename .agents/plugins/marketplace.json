@@ -1,0 +1,23 @@
+{
+  "name": "aimd-local",
+  "interface": {
+    "displayName": "AIMD Local"
+  },
+  "plugins": [
+    {
+      "name": "aimd-reader",
+      "source": {
+        "source": "local",
+        "path": "./plugins/aimd-reader"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL",
+        "products": [
+          "CODEX"
+        ]
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

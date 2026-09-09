@@ -1,0 +1,21 @@
+name: Feature / 功能建议
+description: Describe a user problem and useful outcome / 描述需求与预期效果
+title: '[Feature] '
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is difficult today? / 当前遇到什么困难？
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome / 希望实现的效果
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives or examples / 替代方案或参考

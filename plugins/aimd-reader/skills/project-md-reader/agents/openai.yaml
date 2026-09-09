@@ -1,0 +1,7 @@
+interface:
+  display_name: "Arki · 一览"
+  short_description: "Explore project architecture with code evidence"
+  brand_color: "#285C50"
+  default_prompt: "Use $project-md-reader to launch Arki and analyze this project architecture with diagrams, Markdown, and code evidence."
+policy:
+  allow_implicit_invocation: true

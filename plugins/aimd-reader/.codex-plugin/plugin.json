@@ -1,0 +1,34 @@
+{
+  "name": "aimd-reader",
+  "version": "0.3.0",
+  "description": "Arki · 一览: generate architecture notes and diagrams, ask questions, and follow verified code evidence.",
+  "author": {
+    "name": "AIMD Reader contributors"
+  },
+  "license": "MIT",
+  "keywords": [
+    "architecture",
+    "codebase",
+    "codex",
+    "documentation",
+    "evidence"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Arki · 一览",
+    "shortDescription": "看清项目架构，沿着证据读懂代码",
+    "longDescription": "一键生成项目架构文档与交互图，针对模块、关系和整篇架构持续提问。支持本地分析恢复、离线阅读与代码证据查看。",
+    "developerName": "AIMD Reader contributors",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "用 Arki · 一览分析当前项目架构，生成文档与示意图"
+    ],
+    "brandColor": "#285C50",
+    "screenshots": []
+  },
+  "mcpServers": "./.mcp.json"
+}

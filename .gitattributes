@@ -1,0 +1,4 @@
+# server.mjs content-addresses this helper, so its bytes must be checkout-stable.
+scripts/safe-write-windows.ps1 text eol=lf
+plugins/aimd-reader/dist/safe-write-windows.ps1 text eol=lf
+apps/reader-ui/index.html text eol=lf

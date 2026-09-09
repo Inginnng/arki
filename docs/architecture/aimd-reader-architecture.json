@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "AIMD Reader：项目证据到安全说明文档",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "viewBox": [1120, 800],
+    "views": [
+      {
+        "id": "question-path",
+        "label": "证据问答",
+        "focus": ["readerUi", "hostAdapter", "mcpService", "workspace", "contextBridge", "appServer", "validator", "annotationStore"],
+        "note": "划词锚点、项目快照、侧会话与独立证据复核共同约束答案。"
+      },
+      {
+        "id": "write-path",
+        "label": "说明文档生成",
+        "focus": ["annotationStore", "synthesis", "approval", "safeWriter", "explainedDoc"],
+        "note": "只有用户采纳且证据复核通过的内容才能进入补丁；审批和写入是两个动作。"
+      }
+    ]
+  },
+  "components": [
+    { "id": "readerUi", "type": "frontend", "label": "Markdown 阅读器", "sublabel": "划词、提问与审阅", "pos": [30, 55], "size": [140, 72] },
+    { "id": "hostAdapter", "type": "security", "label": "MCP Apps 适配器", "sublabel": "隐藏元数据不外泄", "pos": [230, 55], "size": [140, 72] },
+    { "id": "mcpService", "type": "backend", "label": "Reader MCP 服务", "sublabel": "会话与能力边界", "pos": [440, 55], "size": [140, 72] },
+    { "id": "contextBridge", "type": "backend", "label": "ContextBridge", "sublabel": "精确绑定或降级", "pos": [650, 55], "size": [140, 72] },
+    { "id": "appServer", "type": "external", "label": "Codex App Server", "sublabel": "临时侧会话", "pos": [860, 55], "size": [140, 72] },
+    { "id": "workspace", "type": "security", "label": "只读项目工作区", "sublabel": "搜索、快照与哈希", "pos": [440, 245], "size": [140, 72] },
+    { "id": "validator", "type": "security", "label": "证据验证与复核", "sublabel": "引用、陈旧、直接支持", "pos": [650, 245], "size": [140, 72] },
+    { "id": "annotationStore", "type": "database", "label": "批注仓库", "sublabel": "仅保存已复核答案", "pos": [650, 410], "size": [140, 72] },
+    { "id": "synthesis", "type": "backend", "label": "最小补丁合成", "sublabel": "处置 → 编辑意图", "pos": [860, 410], "size": [140, 72] },
+    { "id": "approval", "type": "security", "label": "审批令牌", "sublabel": "绑定源与 diff 哈希", "pos": [860, 545], "size": [140, 72] },
+    { "id": "safeWriter", "type": "security", "label": "安全写入器", "sublabel": "复核后独占新建", "pos": [860, 665], "size": [140, 72] },
+    { "id": "explainedDoc", "type": "external", "label": ".explained.md", "sublabel": "源文档始终保留", "pos": [650, 665], "size": [140, 68] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Codex 阅读界面", "wraps": ["readerUi", "hostAdapter"], "pad": 22 },
+    { "kind": "security-group", "label": "本地插件可信边界", "wraps": ["mcpService", "workspace", "contextBridge", "validator", "annotationStore", "synthesis", "approval", "safeWriter"], "pad": 28 }
+  ],
+  "connections": [
+    { "id": "uiToHost", "from": "readerUi", "to": "hostAdapter", "label": "tools/call", "variant": "emphasis" },
+    { "id": "hostToService", "from": "hostAdapter", "to": "mcpService", "label": "MCP DTO" },
+    { "id": "serviceToWorkspace", "from": "mcpService", "to": "workspace", "label": "受限读取", "fromSide": "bottom", "toSide": "top", "labelAt": [510, 187] },
+    { "id": "serviceToBridge", "from": "mcpService", "to": "contextBridge", "label": "结构化问题" },
+    { "id": "bridgeToAppServer", "from": "contextBridge", "to": "appServer", "label": "隔离侧会话", "variant": "dashed" },
+    { "id": "workspaceToValidator", "from": "workspace", "to": "validator", "label": "证据 + 哈希" },
+    { "id": "contextToValidator", "from": "contextBridge", "to": "validator", "label": "结构化声明", "fromSide": "bottom", "toSide": "top", "labelAt": [720, 187] },
+    { "id": "validatorToStore", "from": "validator", "to": "annotationStore", "label": "复核通过", "variant": "emphasis", "fromSide": "bottom", "toSide": "top", "labelAt": [720, 363] },
+    { "id": "storeToSynthesis", "from": "annotationStore", "to": "synthesis", "label": "采纳项" },
+    { "id": "synthesisToApproval", "from": "synthesis", "to": "approval", "label": "精确 diff", "fromSide": "bottom", "toSide": "top", "labelAt": [930, 521] },
+    { "id": "approvalToWriter", "from": "approval", "to": "safeWriter", "label": "绑定令牌", "variant": "emphasis", "fromSide": "bottom", "toSide": "top", "labelAt": [930, 641] },
+    { "id": "writerToDoc", "from": "safeWriter", "to": "explainedDoc", "label": "独占创建" }
+  ],
+  "cards": [
+    { "dot": "orange", "title": "准确性边界", "items": ["任务上下文未经宿主验证时明确降级", "项目声明必须绑定当前文件证据与快照", "虚构引用和陈旧证据均失败关闭"] },
+    { "dot": "emerald", "title": "写入边界", "items": ["只合成用户明确采纳的答案", "审批令牌绑定精确 sourceHash 与 diffHash", "默认新建同目录 .explained.md，绝不覆盖源文件"] }
+  ]
+}

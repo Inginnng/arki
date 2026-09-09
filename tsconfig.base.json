@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "baseUrl": ".",
+    "paths": {
+      "@aimd/contracts": ["packages/contracts/src/index.ts"],
+      "@aimd/reader-core": ["packages/reader-core/src/index.ts"],
+      "@aimd/app-server-bridge": ["packages/app-server-bridge/src/index.ts"],
+      "@aimd/workspace-server": ["packages/workspace-server/src/index.ts"]
+    },
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "declaration": true,
+    "sourceMap": true,
+    "skipLibCheck": true
+  }
+}

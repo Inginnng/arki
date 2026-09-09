@@ -1,0 +1,10 @@
+import {afterEach,expect,it,vi} from "vitest";
+import {cleanup,fireEvent,render,screen} from "@testing-library/react";
+import {ArchitectureDiagram} from "./ArchitectureDiagram.js";
+import {exportArchitectureHtml} from "./architecture-export.js";
+import {architectureMarkdown} from "./architecture-document.js";
+import {scenarioGraph,scenarios} from "../../../tests/fixtures/architecture-scenarios.mjs";
+vi.mock("./architecture-graph-layout.js",()=>({layoutArchitectureGraph:vi.fn(async()=>{throw Error("layout unavailable")})}));
+afterEach(cleanup);
+it("retains selectable components and all transfers when layout fails",async()=>{const onSelect=vi.fn();render(<ArchitectureDiagram graph={scenarioGraph} mode="flow" target={null} dark={false} onSelect={onSelect} flow={scenarios[2]} />);expect(await screen.findByText(/图形布局暂不可用/)).toBeTruthy();expect(screen.getAllByText(/校验失败且用户调整输入后重试/)).toHaveLength(1);fireEvent.click(screen.getByRole("button",{name:/历史归档/}));expect(onSelect).toHaveBeenCalledWith({kind:"node",id:"archive"});});
+it("exports all readable scenario details even without a diagram",async()=>{const html=await exportArchitectureHtml(scenarioGraph,architectureMarkdown(scenarioGraph));expect(html).toContain("图形布局不可用");expect(html).toContain("校验失败且用户调整输入后重试");expect(html).toContain("缓存命中与回退");expect(html).not.toContain('<svg');});
