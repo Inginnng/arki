@@ -45,6 +45,14 @@ Arki 是一个本地项目架构工作台，也是一个 Codex 插件。它阅�
 
 ## 快速开始
 
+**最简单：让 AI 帮你安装。** 将下面这句话复制给能操作本机终端的 AI 助手（例如 Codex）：
+
+```text
+https://github.com/Inginnng/arki，帮我安装 Arki。
+```
+
+想指定要分析的项目，再补充项目目录即可。也可以按下面的步骤手动安装。
+
 需要 Node.js 20.19+（建议 22 LTS）和已登录的 Codex。**Windows + Edge 是当前主要实测环境**；macOS/Linux 的完整 Codex 联调仍待验证。
 
 从 [Releases](https://github.com/Inginnng/arki/releases) 下载 ZIP，解压后运行：

@@ -2,6 +2,18 @@
 
 Arki 把项目的实现整理成架构文档、组件图和典型流程。它需要本地 Node.js，以及已经登录且可运行的 Codex。AI 请求会使用你的 Codex 服务与额度。
 
+## 方式一：让 AI 帮你安装（推荐）
+
+将下面这句话复制给能操作本机终端的 AI 助手（例如 Codex）：
+
+```text
+https://github.com/Inginnng/arki，帮我安装 Arki。
+```
+
+想指定要分析的项目，再补充项目目录即可。让 AI 参照本仓库的安装说明检查环境、完成安装并打开工作台；需要账号登录时，由你完成登录。
+
+也可以按下面的步骤手动安装。
+
 ## 环境
 
 - 建议 Node.js 22 LTS；最低 20.19。
@@ -9,7 +21,7 @@ Arki 把项目的实现整理成架构文档、组件图和典型流程。它需
 - 从源码构建需要 pnpm 10.33、Git 和 ripgrep。下载发行包无需安装项目依赖。
 - Windows + Edge 是当前主要实测环境；macOS/Linux 的完整 Codex 联调仍待验证。
 
-## 方式一：下载发行包
+## 方式二：下载发行包
 
 从 [Releases](https://github.com/Inginnng/arki/releases) 下载 `arki-<version>.zip` 和 `SHA256SUMS.txt`。Windows 可用 `Get-FileHash` 核对 ZIP 的 SHA-256，再解压到独立目录。
 
@@ -21,7 +33,7 @@ node dist/arki.mjs --root "你的项目目录" --open
 
 Windows 也可将项目文件夹拖到发行包内的 `Arki.cmd`。目录参数是**要分析的项目**，不是 Arki 安装目录。启动器会输出本地地址，复用对应项目的后台或选择空闲端口。
 
-## 方式二：从源码运行
+## 方式三：从源码运行
 
 ```sh
 git clone https://github.com/Inginnng/arki.git
@@ -37,7 +49,7 @@ pnpm start
 node scripts/arki.mjs --root "你的项目目录" --open
 ```
 
-## 方式三：在 Codex 中使用插件
+## 方式四：在 Codex 中使用插件
 
 在支持 `codex plugin` 的版本中，克隆仓库后注册本地 marketplace：
 

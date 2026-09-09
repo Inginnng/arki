@@ -37,6 +37,14 @@ Static imports are not automatically treated as runtime flows. Diagram layout fa
 
 ## Quick start
 
+**The easiest way: ask AI to install Arki.** Copy this prompt into an AI assistant with access to your local terminal, such as Codex:
+
+```text
+https://github.com/Inginnng/arki — Help me install Arki.
+```
+
+Add your project directory if you want to analyze a specific project. You can also follow the manual steps below.
+
 Requires Node.js 20.19+ (22 LTS recommended) and a signed-in, usable Codex CLI. **Windows with Edge is the primary verified desktop environment.** Complete macOS/Linux live Codex validation remains pending.
 
 Download and extract a ZIP from [Releases](https://github.com/Inginnng/arki/releases), then run inside the extracted directory:
