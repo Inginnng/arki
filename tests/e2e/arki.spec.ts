@@ -67,7 +67,11 @@ test("一键分析生成文档与图形，问答保存后可离线重开并在�
   const offlineExport = page.waitForEvent("download"); await page.getByRole("button", { name: "导出 HTML" }).click();
   expect(await readFile((await (await offlineExport).path())!, "utf8")).toContain("Gateway");
   await page.screenshot({ path: testInfo.outputPath("arki-offline.png") });
+  // Restoring the saved graph also renders it through a real child process.
+  // Wait for that response before checking UI readiness on slower CI runners.
+  const restored = page.waitForResponse(response => response.url().endsWith("/api/architecture"));
   fixture.restart(); await page.getByRole("button", { name: "立即重连" }).click();
+  expect((await restored).ok()).toBe(true);
   await expect(page.getByRole("button", { name: "回答架构问题" })).toBeEnabled();
   expect(fixture.calls.filter(call => call.operation === "ask")).toHaveLength(2);
   await page.getByRole("button", { name: "架构文档", exact: true }).click();
