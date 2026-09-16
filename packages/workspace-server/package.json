@@ -19,7 +19,7 @@
     "@aimd/app-server-bridge": "workspace:*",
     "@aimd/contracts": "workspace:*",
     "@aimd/reader-core": "workspace:*",
-    "@modelcontextprotocol/ext-apps": "^1.0.1",
+    "@modelcontextprotocol/ext-apps": "^2.0.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "ignore": "7.0.6",
     "zod": "^4.1.5"
