@@ -12,7 +12,7 @@
     "@modelcontextprotocol/ext-apps": "^1.0.1",
     "@xyflow/react": "^12.11.6",
     "elkjs": "^0.12.0",
-    "react": "^18.3.1",
+    "react": "^19.3.0",
     "react-dom": "^18.3.1",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
@@ -23,7 +23,7 @@
   "devDependencies": {
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
-    "@types/react": "^18.3.24",
+    "@types/react": "^19.3.0",
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react": "^5.0.2",
     "jsdom": "^26.1.0",
